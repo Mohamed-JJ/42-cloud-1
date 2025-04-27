@@ -1,0 +1,62 @@
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    depends_on:
+     - wordpress
+    ports:
+      - "1080:80"
+    networks:
+      - my_network
+    volumes:
+      - wordpress:/var/www/html:ro
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs/inception.crt:/etc/nginx/inception.crt
+      - ./certs/inception.key:/etc/nginx/inception.key
+    restart: on-failure
+    env_file:
+      - .env
+  mariadb:
+    image: mariadb
+    container_name: mariadb
+    volumes:
+      - mariadb:/var/lib/mysql
+    networks:
+      - my_network
+    restart: on-failure
+    env_file:
+      - .env
+  wordpress:
+    image: wordpress:php8.1-fpm
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    ports:
+      - "9000:9000"
+    networks:
+      - my_network
+    volumes:
+      - wordpress:/var/www/html
+    restart: on-failure
+    env_file:
+      - .env
+
+
+
+volumes:
+  mariadb:
+    driver: local
+    driver_opts:
+        type: none
+        o: bind
+        device: ./data/db
+  wordpress:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/wp
+
+networks:
+  my_network:
+    name: my_network
