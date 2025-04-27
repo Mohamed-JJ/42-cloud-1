@@ -7,13 +7,13 @@ terraform {
 }
 
 # Pulls the image
-resource "docker_image" "wordpress_image" {
+resource "docker_image" "wordpress" {
   name = "wordpress:fpm"
 }
 
 
 # Create a container
 resource "docker_container" "wordpress_container" {
-  image = docker_image.wordpress.fpm
+  image = docker_image.wordpress.name
   name  = "wordpress"
 }
