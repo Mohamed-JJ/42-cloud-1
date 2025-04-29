@@ -21,10 +21,10 @@ variable "region" {
 
 terraform {
   required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "2.12.2"
-    }
+    # docker = {
+    #   source  = "kreuzwerker/docker"
+    #   version = "2.12.2"
+    # }
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
@@ -32,19 +32,19 @@ terraform {
   }
 }
 
-provider "docker" {
-  host = var.docker_target == "local" ? "unix:///var/run/docker.sock" : "tcp://${aws_instance.cloud-1.public_ip}:2375/"
-}
+# provider "docker" {
+#   host = var.docker_target == "local" ? "unix:///var/run/docker.sock" : "tcp://${aws_instance.cloud-1.public_ip}:2375/"
+# }
 
-provider "aws" {
-  region = var.region
-}
+# provider "aws" {
+#   region = var.region
+# }
 
-variable "docker_target" {
-  description = "Where to deploy Docker containers: 'local' or 'remote'"
-  type        = string
-  default     = "local"
-}
+# variable "docker_target" {
+#   description = "Where to deploy Docker containers: 'local' or 'remote'"
+#   type        = string
+#   default     = "local"
+# }
 
 resource "aws_instance" "cloud-1" {
   ami           = data.aws_ami.ubuntu.id
@@ -84,21 +84,21 @@ resource "aws_security_group" "docker_sg" {
 }
 
 
-module "nginx" {
-  source = "./nginx" # path to your submodule folder
-  # (optional) Pass variables to the module if needed
-}
+# module "nginx" {
+#   source = "./nginx" # path to your submodule folder
+#   # (optional) Pass variables to the module if needed
+# }
 
-module "wordpress" {
-  source = "./wordpress" # path to your submodule folder
-  # (optional) Pass variables to the module if needed
-}
+# module "wordpress" {
+#   source = "./wordpress" # path to your submodule folder
+#   # (optional) Pass variables to the module if needed
+# }
 
-module "mariadb" {
-  source = "./mariadb" # path to your submodule folder
-  # (optional) Pass variables to the module if needed
-}
+# module "mariadb" {
+#   source = "./mariadb" # path to your submodule folder
+#   # (optional) Pass variables to the module if needed
+# }
 
-output "docker_host_used" {
-  value = var.docker_target == "local" ? "Local Docker" : "Remote Docker on EC2 ${aws_instance.cloud-1.public_ip}"
-}
+# output "docker_host_used" {
+#   value = var.docker_target == "local" ? "Local Docker" : "Remote Docker on EC2 ${aws_instance.cloud-1.public_ip}"
+# }
