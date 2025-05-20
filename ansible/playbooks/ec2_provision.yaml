@@ -1,4 +1,0 @@
----
-- name: Provision ec2 instance
-  become: true
-  hosts: all

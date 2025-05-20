@@ -1,5 +1,0 @@
-[local]
-localhost ansible_connection=local
-
-# This will be populated dynamically after instance creation
-[ec2_instances]
