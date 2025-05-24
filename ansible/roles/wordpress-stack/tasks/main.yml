@@ -1,0 +1,102 @@
+---
+- name: Create Nginx configuration
+  template:
+    src: nginx.conf.j2
+    dest: /opt/wordpress/nginx/nginx.conf
+    mode: '0644'
+  notify: restart nginx container
+
+- name: Create Docker Compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/wordpress/docker-compose.yml
+    mode: '0644'
+
+- name: Create environment file
+  template:
+    src: .env.j2
+    dest: /opt/wordpress/.env
+    mode: '0600'
+
+- name: Pull Docker images
+  docker_image:
+    name: "{{ item }}"
+    source: pull
+  loop:
+    - mariadb:10.8
+    - wordpress:latest
+    - nginx:alpine
+
+- name: Start MariaDB container
+  docker_container:
+    name: "{{ mariadb_container_name }}"
+    image: mariadb:10.8
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    volumes:
+      - /opt/wordpress/mysql-data:/var/lib/mysql
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ wordpress_db_root_password }}"
+      MYSQL_DATABASE: "{{ wordpress_db_name }}"
+      MYSQL_USER: "{{ wordpress_db_user }}"
+      MYSQL_PASSWORD: "{{ wordpress_db_password }}"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+- name: Wait for MariaDB to be ready
+  wait_for:
+    timeout: 60
+  delegate_to: localhost
+
+- name: Start WordPress container
+  docker_container:
+    name: "{{ wordpress_container_name }}"
+    image: wordpress:latest
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    volumes:
+      - /opt/wordpress/wordpress-data:/var/www/html
+    env:
+      WORDPRESS_DB_HOST: "{{ mariadb_container_name }}:3306"
+      WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
+      WORDPRESS_DB_USER: "{{ wordpress_db_user }}"
+      WORDPRESS_DB_PASSWORD: "{{ wordpress_db_password }}"
+    depends_on:
+      - "{{ mariadb_container_name }}"
+
+- name: Start Nginx container
+  docker_container:
+    name: "{{ nginx_container_name }}"
+    image: nginx:alpine
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/wordpress/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /opt/wordpress/wordpress-data:/var/www/html:ro
+    depends_on:
+      - "{{ wordpress_container_name }}"
+
+- name: Verify all containers are running
+  docker_container_info:
+    name: "{{ item }}"
+  register: container_info
+  loop:
+    - "{{ mariadb_container_name }}"
+    - "{{ wordpress_container_name }}"
+    - "{{ nginx_container_name }}"
+
+- name: Display container status
+  debug:
+    msg: "Container {{ item.item }} is {{ item.container.State.Status if item.exists else 'not found' }}"
+  loop: "{{ container_info.results }}"

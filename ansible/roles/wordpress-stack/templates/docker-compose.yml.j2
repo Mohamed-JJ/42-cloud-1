@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.8
+    container_name: {{ mariadb_container_name }}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  wordpress:
+    image: wordpress:latest
+    container_name: {{ wordpress_container_name }}
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: {{ mariadb_container_name }}:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_CONFIG_EXTRA: |
+        /* Multisite */
+        define('WP_ALLOW_MULTISITE', true);
+        
+        /* SSL */
+        if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+            $_SERVER['HTTPS'] = 'on';
+        }
+        
+        /* Memory limit */
+        define('WP_MEMORY_LIMIT', '256M');
+        
+        /* File permissions */
+        define('FS_METHOD', 'direct');
+    volumes:
+      - ./wordpress-data:/var/www/html
+    networks:
+      - {{ docker_network_name }}
+
+  nginx:
+    image: nginx:alpine
+    container_name: {{ nginx_container_name }}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./wordpress-data:/var/www/html:ro
+    depends_on:
+      - wordpress
+    networks:
+      - {{ docker_network_name }}
+
+networks:
+  {{ docker_network_name }}:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  wordpress-data:

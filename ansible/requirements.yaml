@@ -1,0 +1,5 @@
+collections:
+  - amazon.aws
+  - community.docker
+roles:
+  - geerlingguy.docker

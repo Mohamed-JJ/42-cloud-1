@@ -1,0 +1,63 @@
+---
+- name: Update package cache (Ubuntu/Debian)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache (CentOS/RHEL)
+  yum:
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install required system packages (Ubuntu/Debian)
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - unzip
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - python3-pip
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install required system packages (CentOS/RHEL)
+  yum:
+    name:
+      - curl
+      - wget
+      - git
+      - unzip
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+      - python3-pip
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Docker Python module
+  pip:
+    name:
+      - docker
+      - docker-compose
+    state: present
+
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/wordpress
+    - /opt/wordpress/nginx
+    - /opt/wordpress/mysql-data
+    - /opt/wordpress/wordpress-data
+
+- name: Set timezone
+  timezone:
+    name: UTC
