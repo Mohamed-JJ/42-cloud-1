@@ -52,6 +52,14 @@
     timeout: 60
   delegate_to: localhost
 
+- name: Wait for MariaDB to be healthy
+  docker_container_info:
+    name: "{{ mariadb_container_name }}"
+  register: mariadb_info
+  until: mariadb_info.exists and mariadb_info.container.State.Health.Status == "healthy"
+  retries: 30
+  delay: 10
+
 - name: Start WordPress container
   docker_container:
     name: "{{ wordpress_container_name }}"
@@ -67,8 +75,6 @@
       WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
       WORDPRESS_DB_USER: "{{ wordpress_db_user }}"
       WORDPRESS_DB_PASSWORD: "{{ wordpress_db_password }}"
-    depends_on:
-      - "{{ mariadb_container_name }}"
 
 - name: Start Nginx container
   docker_container:
@@ -84,8 +90,6 @@
     volumes:
       - /opt/wordpress/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /opt/wordpress/wordpress-data:/var/www/html:ro
-    depends_on:
-      - "{{ wordpress_container_name }}"
 
 - name: Verify all containers are running
   docker_container_info:

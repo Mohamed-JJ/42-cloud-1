@@ -40,12 +40,27 @@
     state: present
   when: ansible_os_family == "RedHat"
 
-- name: Install Docker Python module
+- name: Install Docker Python module via system packages (Ubuntu/Debian)
+  apt:
+    name:
+      - python3-docker
+      - python3-requests
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker Python module via pip (CentOS/RHEL)
   pip:
     name:
       - docker
       - docker-compose
     state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install pipx for Python package management (Ubuntu/Debian)
+  apt:
+    name: pipx
+    state: present
+  when: ansible_os_family == "Debian"
 
 - name: Create application directories
   file:
